@@ -8,14 +8,20 @@ namespace OneDriveAccess
         {
             Normal = 0,
             LocalRoot,
-            SharedRoot
+            Shared,
+            Shares,
+            Share,
+            OneLevelUp
         }
 
         private readonly string[] SpecialTypeNames = new string[]
         {
             "Normal",
             "Root",
-            "Shared"
+            "Shared",
+            "Shares",
+            "Share",
+            ".."
         };
 
 
@@ -24,10 +30,23 @@ namespace OneDriveAccess
             SpecialType = SpecialTypes.Normal;
             Item = item;
         }
+        
+        public FileItemViewModel (Share share)
+        {
+            SpecialType = SpecialTypes.Share;
+            Share = share;
+        }
 
         public FileItemViewModel(SpecialTypes type)
         {
             SpecialType = type;
+            Name = SpecialTypeNames[(int)type];
+        }
+
+        public FileItemViewModel(SpecialTypes type, Item item)
+        {
+            SpecialType = type;
+            Item = item;
             Name = SpecialTypeNames[(int)type];
         }
 
@@ -40,5 +59,9 @@ namespace OneDriveAccess
         public SpecialTypes SpecialType { get; }
 
         public Item Item { get; }
+
+        public Item ParentItem { get; set; }
+
+        public Share Share { get; }
     }
 }

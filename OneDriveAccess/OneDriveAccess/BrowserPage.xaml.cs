@@ -40,14 +40,33 @@ namespace OneDriveAccess
         {
             Connector = new OneDriveConnector();
             await Connector.Connect(Parameter.ClientId, Parameter.ReturnUrl);
-            UpdateForDrive2();
+            await UpdateForDrive2();
         }
 
-        private void UpdateForDrive2()
+        private async Task UpdateForDrive2()
         {
             CurrentItems.Clear();
-            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.LocalRoot));
-            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.SharedRoot));
+            var root = await Connector.Client.Drive.Root.Request().GetAsync();
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.LocalRoot, root));
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.Shared));
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.Shares));
+        }
+
+        private async Task UpdateForShares()
+        {
+            var shares = Connector.Client.Shares;
+            var sharesCollection = await shares.Request().GetAsync();
+            CurrentItems.Clear();
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp));
+            foreach (var share in sharesCollection)
+            {
+                
+                CurrentItems.Add(new FileItemViewModel(share)
+                {
+                    Name = share.Name,
+                    Author = share.Owner.User.DisplayName
+                });
+            }
         }
 
         private async Task UpdateForShared()
@@ -56,13 +75,13 @@ namespace OneDriveAccess
             var shared = drive.Shared;
             var sharedCollection = await shared.Request().GetAsync();
             CurrentItems.Clear();
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp));
             foreach (var sharedItem in sharedCollection)
             {
                 CurrentItems.Add(new FileItemViewModel(sharedItem)
                 {
                     Name = sharedItem.Name,
                     Author = sharedItem.CreatedBy.User.DisplayName,
-                    Path = sharedItem.ParentReference.Path
                 });
             }
         }
@@ -72,21 +91,7 @@ namespace OneDriveAccess
             var drive = Connector.Client.Drive;
             await UpdateList(drive);
         }
-
-        private async Task UpdateForRoot()
-        {
-            CurrentItems.Clear();
-            var root = Connector.Client.Drive.Root;
-            var items = await root.Children.Request().GetAsync();
-            if (items != null)
-            {
-                foreach (var item in items)
-                {
-                    CurrentItems.Add(new FileItemViewModel(item) { Name = item.Name });
-                }
-            }
-        }
-
+        
         private async Task UpdateForPath(string path)
         {
             var root = Connector.Client.Drive.Root;
@@ -120,15 +125,18 @@ namespace OneDriveAccess
             }
         }
 
-        private void UpdateList(Item parent)
+        private async Task UpdateList(FileItemViewModel currDir)
         {
+            var currDirItem = currDir.Item;
+            var parentDirItem = currDir.ParentItem;
             CurrentItems.Clear();
-            var items = parent.Children;
+            var items = await Connector.Client.Drive.Items[currDirItem.Id].Children.Request().GetAsync();
             if (items != null)
             {
+                CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp, parentDirItem));
                 foreach (var item in items)
                 {
-                    CurrentItems.Add(new FileItemViewModel(item) { Name = item.Name });
+                    CurrentItems.Add(new FileItemViewModel(item) { Name = item.Name, ParentItem = currDirItem });
                 }
             }
         }
@@ -146,13 +154,24 @@ namespace OneDriveAccess
                 switch (newSelection.SpecialType)
                 {
                     case FileItemViewModel.SpecialTypes.Normal:
-                        UpdateList(newSelection.Item);
-                        break;
                     case FileItemViewModel.SpecialTypes.LocalRoot:
-                        await UpdateForRoot();
+                        await UpdateList(newSelection);
                         break;
-                    case FileItemViewModel.SpecialTypes.SharedRoot:
+                    case FileItemViewModel.SpecialTypes.OneLevelUp:
+                        if (newSelection.Item != null)
+                        {
+                            await UpdateList(newSelection);
+                        }
+                        else
+                        {
+                            await UpdateForDrive2();
+                        }
+                        break;
+                    case FileItemViewModel.SpecialTypes.Shared:
                         await UpdateForShared();
+                        break;
+                    case FileItemViewModel.SpecialTypes.Shares:
+                        await UpdateForShares();
                         break;
                 }
             }
