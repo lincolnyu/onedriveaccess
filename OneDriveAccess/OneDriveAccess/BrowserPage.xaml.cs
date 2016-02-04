@@ -49,13 +49,27 @@ namespace OneDriveAccess
             var root = await Connector.Client.Drive.Root.Request().GetAsync();
             CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.LocalRoot, root));
             CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.Shared));
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.Special));
             CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.Shares));
+        }
+
+        private async Task UpdateForSpecial()
+        {
+            var specials = await Connector.Client.Drive.Special.Request().GetAsync();
+            CurrentItems.Clear();
+            CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp));
+            foreach (var special in specials)
+            {
+                CurrentItems.Add(new FileItemViewModel(special)
+                {
+                    Name = special.Name,
+                });
+            }
         }
 
         private async Task UpdateForShares()
         {
-            var shares = Connector.Client.Shares;
-            var sharesCollection = await shares.Request().GetAsync();
+            var sharesCollection = await Connector.Client.Shares.Request().GetAsync();
             CurrentItems.Clear();
             CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp));
             foreach (var share in sharesCollection)
@@ -172,6 +186,9 @@ namespace OneDriveAccess
                         break;
                     case FileItemViewModel.SpecialTypes.Shares:
                         await UpdateForShares();
+                        break;
+                    case FileItemViewModel.SpecialTypes.Special:
+                        await UpdateForSpecial();
                         break;
                 }
             }

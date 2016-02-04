@@ -11,6 +11,7 @@ namespace OneDriveAccess
             Shared,
             Shares,
             Share,
+            Special,
             OneLevelUp
         }
 
@@ -21,6 +22,7 @@ namespace OneDriveAccess
             "Shared",
             "Shares",
             "Share",
+            "Special",
             ".."
         };
 
