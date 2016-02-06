@@ -1,11 +1,12 @@
 ﻿using Microsoft.OneDrive.Sdk;
+using System;
 using System.Threading.Tasks;
+using Windows.Web.Http;
 
 namespace OneDriveAccess
 {
     public class OneDriveConnector
     {
-
         public AccountSession AccountSession { get; private set; }
 
         public IOneDriveClient Client { get; private set; }
@@ -18,8 +19,12 @@ namespace OneDriveAccess
             }
         }
 
-        public async Task<bool> Connect(string clientId, string returnUrl)
+        public async Task<bool> Connect()
         {
+            if (Connected)
+            {
+                return true;
+            }
             var scopes = new string[]
             {
                 "wl.signin",
@@ -42,6 +47,36 @@ namespace OneDriveAccess
         {
             Client = null;
             AccountSession = null;
+        }
+
+        public async Task<bool> SignOut()
+        {
+            var connected = await Connect();
+            if (connected)
+            {
+                if (AccountSession.CanSignOut)
+                {
+                    await Client.SignOutAsync();
+                    return await Connect();
+                }
+                else
+                {
+                    var wc = new HttpClient();
+                    var getUri = new Uri($"https://login.live.com/oauth20_logout.srf?client_id={AccountSession.ClientId}");
+                    var responseGet = await wc.GetAsync(getUri);
+                    do
+                    {
+                        AccountSession.ExpiresOnUtc = DateTimeOffset.UtcNow;
+                    }
+                    while (!AccountSession.IsExpiring()) ;
+                    AccountSession.AccessToken = null;
+                    AccountSession.RefreshToken = null;
+                    await Client.SignOutAsync();
+                }   
+                Disconnect();
+                return await Connect();
+            }
+            return false;
         }
     }
 }

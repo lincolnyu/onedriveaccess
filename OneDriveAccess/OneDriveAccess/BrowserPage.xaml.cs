@@ -39,8 +39,11 @@ namespace OneDriveAccess
         private async void PageOnLoaded(object sender, RoutedEventArgs e)
         {
             Connector = new OneDriveConnector();
-            await Connector.Connect(Parameter.ClientId, Parameter.ReturnUrl);
-            await UpdateForDrive2();
+            var succeeded = await Connector.Connect();
+            if (succeeded)
+            {
+                await UpdateForDrive2();
+            }
         }
 
         private async Task UpdateForDrive2()
@@ -74,7 +77,6 @@ namespace OneDriveAccess
             CurrentItems.Add(new FileItemViewModel(FileItemViewModel.SpecialTypes.OneLevelUp));
             foreach (var share in sharesCollection)
             {
-                
                 CurrentItems.Add(new FileItemViewModel(share)
                 {
                     Name = share.Name,
@@ -193,6 +195,11 @@ namespace OneDriveAccess
                 }
             }
             _suppressChangedEvent = false;
+        }
+
+        private async void SignOutOnClicked(object sender, RoutedEventArgs args)
+        {
+            await Connector.SignOut();
         }
     }
 }

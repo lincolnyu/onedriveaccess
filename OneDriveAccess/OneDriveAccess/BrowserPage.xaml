@@ -8,7 +8,14 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Loaded="PageOnLoaded">
-        <ListView ItemsSource="{Binding CurrentItems}" SelectionMode="Single" SelectionChanged="SelectedFileItemChanged">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"></RowDefinition>
+            <RowDefinition></RowDefinition>
+        </Grid.RowDefinitions>
+        <Button Grid.Row="0" Click="SignOutOnClicked">Sign Out</Button>
+        <ListView Grid.Row="1" ItemsSource="{Binding CurrentItems}" SelectionMode="Single" 
+                  SelectionChanged="SelectedFileItemChanged"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
